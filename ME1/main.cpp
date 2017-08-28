@@ -11,6 +11,7 @@ char exeBaseFolder[FILENAME_MAX];
 //BYTE pattern[] = { 0, 0, 0, 0 };
 
 FILE *Log = NULL;
+int ASIcount = 0;
 
 void logprintf(const char *format, ...)
 {
@@ -33,7 +34,7 @@ void SetExecutableFolder()
 }
 
 // --- Load Plugins ---
-void loadPlugins (char *folder)
+void loadPlugins (const char *folder)
 {
 	DWORD typeMask = 0x6973612e; // '.asi'
 	WIN32_FIND_DATA fd;
@@ -61,7 +62,10 @@ void loadPlugins (char *folder)
 				strcat_s (currfile, "\\");
 				strcat_s (currfile, fd.cFileName);
 				if (LoadLibrary(currfile))
+				{
 					logprintf("Plugin loaded: %s\n", currfile);
+					ASIcount++;
+				}
 				else
 					logprintf("Plugin error: %s\n", currfile);
 			}
@@ -201,8 +205,9 @@ DWORD WINAPI Start(LPVOID lpParam)
 		return 0;
 	}
 	SetExecutableFolder();
-	loadPlugins(".");
 	loadPlugins("asi");
+	if (!ASIcount)
+		loadPlugins(".");
 	if (Log)
 		fclose(Log);
 	return 0;

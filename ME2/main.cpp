@@ -9,6 +9,7 @@ FARPROC p[71] = {0};
 char exeBaseFolder[FILENAME_MAX];
 BYTE pattern [] = { 0x59, 0x5F, 0x5E, 0x5D, 0x5B, 0x83, 0xC4, 0x48, 0xC2, 0x0C, 0x00, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC, 0xCC };
 FILE *Log = NULL;
+int ASIcount = 0;
 
 void logprintf(const char *format, ...)
 {
@@ -31,7 +32,7 @@ void SetExecutableFolder()
 }
 
 // --- Load Plugins ---
-void loadPlugins (char *folder)
+void loadPlugins (const char *folder)
 {
 	DWORD typeMask = 0x6973612e; // '.asi'
 	WIN32_FIND_DATA fd;
@@ -59,7 +60,10 @@ void loadPlugins (char *folder)
 				strcat_s (currfile, "\\");
 				strcat_s (currfile, fd.cFileName);
 				if (LoadLibrary(currfile))
+				{
 					logprintf("Plugin loaded: %s\n", currfile);
+					ASIcount++;
+				}
 				else
 					logprintf("Plugin error: %s\n", currfile);
 			}
@@ -239,15 +243,15 @@ DWORD WINAPI Start(LPVOID lpParam)
 		logprintf("DLC check - position: 0x%X\n", patch1);
 		DWORD dwProtect;
 		VirtualProtect( (void*)(patch1 + 8), 0x8, PAGE_READWRITE, &dwProtect );
-		BYTE* p = (BYTE *)(patch1 + 8);
-		*p++ = 0xB8;
-		*p++ = 0x01;
-		*p++ = 0x00;
-		*p++ = 0x00;
-		*p++ = 0x00;
-		*p++ = 0xC2;
-		*p++ = 0x0C;
-		*p = 0x00;
+		BYTE *b = (BYTE*)(patch1 + 8);
+		*b++ = 0xB8;
+		*b++ = 0x01;
+		*b++ = 0x00;
+		*b++ = 0x00;
+		*b++ = 0x00;
+		*b++ = 0xC2;
+		*b++ = 0x0C;
+		*b = 0x00;
 		VirtualProtect( (void*)(patch1 + 9), 0x8, dwProtect, &dwProtect );
 		logprintf("DLC check - patch: done\n");
 	}
@@ -256,8 +260,9 @@ DWORD WINAPI Start(LPVOID lpParam)
 		logprintf("DLC check - patch: byte pattern not found\n");
 	}
 	SetExecutableFolder();
-	loadPlugins(".");
 	loadPlugins("asi");
+	if (!ASIcount)
+		loadPlugins(".");
 	if(Log)
 		fclose(Log);
 	return 0;
